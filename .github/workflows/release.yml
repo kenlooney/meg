@@ -1,0 +1,110 @@
+name: Build, test, and package
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} / ${{ matrix.configuration }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+        platform: [Windows-x64, Linux-x64]
+        include:
+          - platform: Windows-x64
+            os: windows-2022
+            generator: Visual Studio 17 2022
+            architecture: -A x64
+            executable: meg.exe
+          - platform: Linux-x64
+            os: ubuntu-24.04
+            generator: Unix Makefiles
+            architecture: ''
+            executable: meg
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure
+        run: |
+          cmake -S . -B build/ci -G "${{ matrix.generator }}" ${{ matrix.architecture }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build/ci --config ${{ matrix.configuration }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build/ci -C ${{ matrix.configuration }} --output-on-failure
+
+      - name: Install
+        run: cmake --install build/ci --config ${{ matrix.configuration }} --prefix "$PWD/install/ci"
+
+      - name: Verify installed executable
+        run: ./install/ci/bin/${{ matrix.executable }} --run examples/return42.meg > /dev/null
+
+
+      - name: Package ZIP
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.configuration == 'Release'
+        run: cpack --config build/ci/CPackConfig.cmake -C Release -G ZIP -B dist
+
+      - name: Upload ZIP
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.configuration == 'Release'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: meg-${{ matrix.platform }}
+          path: dist/*.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Publish release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: meg-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish ZIPs to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_NUMBER: ${{ github.run_number }}
+        shell: bash
+        run: |
+          archives=(dist/*.zip)
+          test "${#archives[@]}" -eq 2
+          linux_archives=(dist/meg-*-Linux-*.zip)
+          test "${#linux_archives[@]}" -eq 1
+          filename="${linux_archives[0]##*/}"
+          version="${filename#meg-}"
+          version="${version%-Linux-*}"
+          RELEASE_TAG="v${version}-build.${RELEASE_NUMBER}"
+          release_title="meg ${version} (build ${RELEASE_NUMBER})"
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${archives[@]}" --clobber
+            gh release edit "$RELEASE_TAG" --title "$release_title"
+          else
+            gh release create "$RELEASE_TAG" "${archives[@]}" \
+              --target "$GITHUB_SHA" --title "$release_title" --generate-notes
+          fi
