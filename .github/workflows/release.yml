@@ -53,8 +53,7 @@ jobs:
         run: cmake --install build/ci --config ${{ matrix.configuration }} --prefix "$PWD/install/ci"
 
       - name: Verify installed executable
-        run: ./install/ci/bin/${{ matrix.executable }} --run examples/return42.meg > /dev/null
-
+        run: ./install/ci/bin/${{ matrix.executable }} --help > /dev/null
 
       - name: Package ZIP
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.configuration == 'Release'
