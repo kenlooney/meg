@@ -1,27 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
-project(meg VERSION 0.1.0 LANGUAGES C)
+project(meg VERSION 0.2.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 include(CTest)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.c")
-add_executable(meg ${SOURCES})
-if(MSVC)
-  target_compile_options(meg PRIVATE /W4 /WX /permissive-)
-else()
-  target_compile_options(meg PRIVATE -Wall -Wextra -Wpedantic -Werror)
-endif()
-
-# Install rules
-install(TARGETS meg RUNTIME DESTINATION bin)
-install(FILES README.md LICENSE DESTINATION share/doc/meg)
-
-include(CTest)
+add_subdirectory(targets)
 
 if(BUILD_TESTING)
- add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()
 
 # CPack configuration
