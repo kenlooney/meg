@@ -11,4 +11,8 @@ endif()
 
 # Install rules
 install(TARGETS meg RUNTIME DESTINATION bin)
-install(FILES README.md LICENSE DESTINATION share/doc/meg)
+install(
+  FILES
+    "${CMAKE_SOURCE_DIR}/README.md"
+    "${CMAKE_SOURCE_DIR}/LICENSE"
+  DESTINATION share/doc/meg)
