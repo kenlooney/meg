@@ -14,7 +14,7 @@
  * GNU General Public License for more details.
  */
 
-#include "meg/byte_buffer.h"
+#include "byte_buffer.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>

@@ -14,8 +14,6 @@
  * GNU General Public License for more details.
  */
 
-#include "meg/byte_buffer.h"
-
 #include <stdio.h>
 #include <string.h>
 
@@ -23,26 +21,12 @@ void print_help() {
   puts("");
   puts("Options:");
   puts("  -h, --help    display this help and exit");
-  puts("  -e, --endianess    set the byte order (little or big)");
 }
-
-MegEndianness endianness;
 int main(int argc, char **argv) {
   if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
     print_help();
     return 0;
   }
-  if (argc == 3 && (strcmp(argv[1], "--endianess") == 0 || strcmp(argv[1], "-e") == 0)) {
-    if (strcmp(argv[2], "little") == 0) {
-      // Set little endian
-      endianness = MEG_LITTLE_ENDIAN;
-    } else if (strcmp(argv[2], "big") == 0) {
-      // Set big endian
-      endianness = MEG_BIG_ENDIAN;
-    } else {
-      fprintf(stderr, "Invalid endianess: %s\n", argv[2]);
-      return 1;
-    }
-  }
+ 
   return 0;
 }

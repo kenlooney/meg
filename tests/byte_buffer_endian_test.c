@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include "meg/byte_buffer.h"
+#include "byte_buffer.h"
 
 #include <stdio.h>
 #include <string.h>
